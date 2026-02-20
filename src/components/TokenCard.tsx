@@ -1,10 +1,13 @@
+"use client";
+
 import { motion, useMotionValue, useTransform, useAnimation, PanInfo } from "framer-motion";
 import { SurvivalMeter } from "./SurvivalMeter";
 import { ArrowUpRight, ArrowDownRight, Droplets, Users, ShoppingCart, TrendingDown, Eye, Bookmark } from "lucide-react";
 import type { AgentToken } from "@/data/mockData";
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
+import { formatNumber } from "@/lib/utils";
 
 interface TokenCardProps {
   token: AgentToken;
@@ -23,7 +26,7 @@ const swipeOverlays = {
 
 export function TokenCard({ token, index, onClick }: TokenCardProps) {
   const isPositive = token.change24h >= 0;
-  const navigate = useNavigate();
+  const router = useRouter();
   const [swipeDir, setSwipeDir] = useState<"right" | "left" | "up" | "down" | null>(null);
   const [swiping, setSwiping] = useState(false);
 
@@ -67,7 +70,7 @@ export function TokenCard({ token, index, onClick }: TokenCardProps) {
       }
     } else if (absY > SWIPE_THRESHOLD && absY > absX) {
       if (dy < 0) {
-        navigate(`/token/${token.id}`);
+        router.push(`/token/${token.id}`);
         return;
       } else {
         toast({ title: `⭐ Added to Watchlist`, description: `${token.name} added to your watchlist` });
@@ -77,7 +80,7 @@ export function TokenCard({ token, index, onClick }: TokenCardProps) {
     setSwipeDir(null);
     setSwiping(false);
     controls.start({ x: 0, y: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
-  }, [token, navigate, controls]);
+  }, [token, router, controls]);
 
   const overlay = swipeDir ? swipeOverlays[swipeDir] : null;
 
@@ -146,7 +149,7 @@ export function TokenCard({ token, index, onClick }: TokenCardProps) {
 
         <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-3 text-[10px] sm:text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><Droplets className="w-3 h-3" />{token.liquidityDepth}%</span>
-          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{token.holders.toLocaleString()}</span>
+          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{formatNumber(token.holders)}</span>
           <span className="ml-auto">{token.type}</span>
         </div>
       </motion.div>

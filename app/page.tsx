@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { TokenCard } from "@/components/TokenCard";
 import { TierBadge } from "@/components/TierBadge";
@@ -5,10 +7,10 @@ import { VoiceMic } from "@/components/VoiceMic";
 import { SwipeHint } from "@/components/SwipeHint";
 import { MOCK_TOKENS, MOCK_PROPOSALS } from "@/data/mockData";
 import { Radio, TrendingUp, Vote, Zap, ArrowUpRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
-const Dashboard = () => {
-  const navigate = useNavigate();
+export default function Dashboard() {
+  const router = useRouter();
   const trendingTokens = MOCK_TOKENS.filter((t) => t.status !== "retired").slice(0, 4);
   const topProposals = MOCK_PROPOSALS.slice(0, 3);
 
@@ -34,7 +36,7 @@ const Dashboard = () => {
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => navigate("/livestream")}
+                  onClick={() => router.push("/livestream")}
                   className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display text-[10px] sm:text-xs uppercase tracking-wider font-semibold glow-cyan"
                 >
                   <Radio className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Watch Live
@@ -65,13 +67,13 @@ const Dashboard = () => {
         <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <TrendingUp className="w-4 h-4 text-primary" />
           <h2 className="font-display text-xs sm:text-sm uppercase tracking-wider text-foreground">Trending Tokens</h2>
-          <motion.button whileHover={{ x: 2 }} onClick={() => navigate("/marketplace")} className="ml-auto text-[10px] sm:text-xs text-primary flex items-center gap-1">
+          <motion.button whileHover={{ x: 2 }} onClick={() => router.push("/marketplace")} className="ml-auto text-[10px] sm:text-xs text-primary flex items-center gap-1">
             View all <ArrowUpRight className="w-3 h-3" />
           </motion.button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           {trendingTokens.map((token, i) => (
-            <TokenCard key={token.id} token={token} index={i} onClick={() => navigate(`/token/${token.id}`)} />
+            <TokenCard key={token.id} token={token} index={i} onClick={() => router.push(`/token/${token.id}`)} />
           ))}
         </div>
       </section>
@@ -81,7 +83,7 @@ const Dashboard = () => {
         <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <Vote className="w-4 h-4 text-tier-gold" />
           <h2 className="font-display text-xs sm:text-sm uppercase tracking-wider text-foreground">Top Proposals</h2>
-          <motion.button whileHover={{ x: 2 }} onClick={() => navigate("/governance")} className="ml-auto text-[10px] sm:text-xs text-primary flex items-center gap-1">
+          <motion.button whileHover={{ x: 2 }} onClick={() => router.push("/governance")} className="ml-auto text-[10px] sm:text-xs text-primary flex items-center gap-1">
             View all <ArrowUpRight className="w-3 h-3" />
           </motion.button>
         </div>
@@ -111,6 +113,4 @@ const Dashboard = () => {
       </section>
     </div>
   );
-};
-
-export default Dashboard;
+}

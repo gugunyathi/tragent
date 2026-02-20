@@ -1,20 +1,24 @@
+"use client";
+
 import { motion } from "framer-motion";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
 import { MOCK_TOKENS } from "@/data/mockData";
 import { SurvivalMeter } from "@/components/SurvivalMeter";
 import { VoiceMic } from "@/components/VoiceMic";
+import { formatNumber } from "@/lib/utils";
 import { ArrowLeft, Droplets, Users, BarChart3, Shield, Clock, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
-const TokenDetail = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+export default function TokenDetail() {
+  const params = useParams();
+  const router = useRouter();
+  const id = params.id as string;
   const token = MOCK_TOKENS.find((t) => t.id === id);
 
   if (!token) {
     return (
       <div className="pt-20 px-4 text-center text-muted-foreground">
         Token not found.
-        <button onClick={() => navigate("/marketplace")} className="block mx-auto mt-4 text-primary text-sm">Back to marketplace</button>
+        <button onClick={() => router.push("/marketplace")} className="block mx-auto mt-4 text-primary text-sm">Back to marketplace</button>
       </div>
     );
   }
@@ -30,7 +34,7 @@ const TokenDetail = () => {
 
   return (
     <div className="pt-14 sm:pt-16 pb-20 lg:pb-8 px-3 sm:px-4 lg:px-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
-      <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => navigate(-1)} className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
+      <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => router.back()} className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Back
       </motion.button>
 
@@ -72,8 +76,8 @@ const TokenDetail = () => {
         {[
           { icon: BarChart3, label: "24h Volume", value: `$${(token.volume24h / 1000).toFixed(0)}K`, color: "text-primary" },
           { icon: Droplets, label: "Liquidity", value: `${token.liquidityDepth}%`, color: "text-neon-cyan" },
-          { icon: Users, label: "Holders", value: token.holders.toLocaleString(), color: "text-tier-gold" },
-          { icon: Shield, label: "Supply", value: token.supply.toLocaleString(), color: "text-neon-purple" },
+          { icon: Users, label: "Holders", value: formatNumber(token.holders), color: "text-tier-gold" },
+          { icon: Shield, label: "Supply", value: formatNumber(token.supply), color: "text-neon-purple" },
         ].map(({ icon: Icon, label, value, color }, i) => (
           <motion.div key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="glass rounded-xl p-3 sm:p-4 text-center">
             <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mx-auto mb-1 ${color}`} />
@@ -119,6 +123,4 @@ const TokenDetail = () => {
       </section>
     </div>
   );
-};
-
-export default TokenDetail;
+}

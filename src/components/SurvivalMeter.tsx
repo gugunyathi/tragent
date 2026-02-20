@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { formatNumber } from "@/lib/utils";
 
 interface SurvivalMeterProps {
   credits: number;
@@ -29,7 +30,7 @@ export function SurvivalMeter({ credits, max, status, compact }: SurvivalMeterPr
       {!compact && (
         <div className="flex justify-between text-xs text-muted-foreground">
           <span className="font-display uppercase tracking-wider">Survival</span>
-          <span>{credits.toLocaleString()} / {max.toLocaleString()}</span>
+          <span>{formatNumber(credits)} / {formatNumber(max)}</span>
         </div>
       )}
       <div className="h-2 rounded-full bg-muted overflow-hidden">

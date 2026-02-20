@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { TokenCard } from "@/components/TokenCard";
 import { VoiceMic } from "@/components/VoiceMic";
@@ -5,10 +7,10 @@ import { SwipeHint } from "@/components/SwipeHint";
 import { MOCK_TOKENS } from "@/data/mockData";
 import { Store, Search, Filter } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
-const Marketplace = () => {
-  const navigate = useNavigate();
+export default function Marketplace() {
+  const router = useRouter();
   const [filter, setFilter] = useState<string>("all");
   const filtered = filter === "all" ? MOCK_TOKENS : MOCK_TOKENS.filter((t) => t.status === filter);
   const statuses = ["all", "thriving", "stable", "at-risk", "retired"];
@@ -48,15 +50,13 @@ const Marketplace = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {filtered.map((token, i) => (
-          <TokenCard key={token.id} token={token} index={i} onClick={() => navigate(`/token/${token.id}`)} />
+          <TokenCard key={token.id} token={token} index={i} onClick={() => router.push(`/token/${token.id}`)} />
         ))}
       </div>
 
       {filtered.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground text-sm">No tokens found with status "{filter}"</div>
+        <div className="text-center py-12 text-muted-foreground text-sm">No tokens found with status &quot;{filter}&quot;</div>
       )}
     </div>
   );
-};
-
-export default Marketplace;
+}

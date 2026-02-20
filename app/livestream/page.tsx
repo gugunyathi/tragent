@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { LiveChat } from "@/components/LiveChat";
 import { AuctionTimer } from "@/components/AuctionTimer";
@@ -5,7 +7,7 @@ import { VoiceMic } from "@/components/VoiceMic";
 import { SwipeHint } from "@/components/SwipeHint";
 import { Radio, Eye } from "lucide-react";
 
-const Livestream = () => {
+export default function Livestream() {
   return (
     <div className="pt-14 sm:pt-16 pb-20 lg:pb-8 px-3 sm:px-4 lg:px-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -44,8 +46,8 @@ const Livestream = () => {
             <div className="flex items-center gap-3 sm:gap-4">
               <VoiceMic />
               <div className="text-[10px] sm:text-xs text-muted-foreground space-y-0.5">
-                <p>"Buy 10 tokens"</p>
-                <p>"Join auction"</p>
+                <p>&quot;Buy 10 tokens&quot;</p>
+                <p>&quot;Join auction&quot;</p>
               </div>
             </div>
             <SwipeHint />
@@ -60,6 +62,4 @@ const Livestream = () => {
       </div>
     </div>
   );
-};
-
-export default Livestream;
+}

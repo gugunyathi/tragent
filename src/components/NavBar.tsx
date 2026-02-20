@@ -1,17 +1,22 @@
-import { NavLink } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Home, Radio, Store, Vote, Shield, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 import { TierBadge } from "./TierBadge";
 
 const links = [
-  { to: "/", icon: Home, label: "Home" },
-  { to: "/livestream", icon: Radio, label: "Live" },
-  { to: "/marketplace", icon: Store, label: "Market" },
-  { to: "/governance", icon: Vote, label: "Govern" },
-  { to: "/compliance", icon: Shield, label: "Audit" },
+  { href: "/", icon: Home, label: "Home" },
+  { href: "/livestream", icon: Radio, label: "Live" },
+  { href: "/marketplace", icon: Store, label: "Market" },
+  { href: "/governance", icon: Vote, label: "Govern" },
+  { href: "/compliance", icon: Shield, label: "Audit" },
 ];
 
 export function NavBar() {
+  const pathname = usePathname();
+
   return (
     <>
       {/* Top bar */}
@@ -30,20 +35,21 @@ export function NavBar() {
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-1">
-            {links.map(({ to, icon: Icon, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            {links.map(({ href, icon: Icon, label }) => {
+              const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-                  }`
-                }
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </NavLink>
-            ))}
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right side */}
@@ -61,20 +67,21 @@ export function NavBar() {
 
       {/* Bottom mobile/tablet nav */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 glass-strong border-t border-border flex items-center justify-around py-1.5 sm:py-2 safe-area-bottom">
-        {links.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 text-[10px] sm:text-xs transition-colors px-2 py-1 ${
+        {links.map(({ href, icon: Icon, label }) => {
+          const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex flex-col items-center gap-0.5 text-[10px] sm:text-xs transition-colors px-2 py-1 ${
                 isActive ? "text-primary" : "text-muted-foreground"
-              }`
-            }
-          >
-            <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>{label}</span>
-          </NavLink>
-        ))}
+              }`}
+            >
+              <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </nav>
     </>
   );

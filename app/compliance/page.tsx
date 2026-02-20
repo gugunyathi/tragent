@@ -1,9 +1,11 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { MOCK_TOKENS } from "@/data/mockData";
 import { SurvivalMeter } from "@/components/SurvivalMeter";
 import { Shield, AlertTriangle, CheckCircle, Clock, FileSearch } from "lucide-react";
 
-const Compliance = () => {
+export default function Compliance() {
   const activeAgents = MOCK_TOKENS.filter((t) => t.status !== "retired");
   const retiredAgents = MOCK_TOKENS.filter((t) => t.status === "retired");
 
@@ -64,6 +66,4 @@ const Compliance = () => {
       </section>
     </div>
   );
-};
-
-export default Compliance;
+}

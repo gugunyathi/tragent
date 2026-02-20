@@ -1,10 +1,12 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { MOCK_PROPOSALS } from "@/data/mockData";
 import { TierBadge } from "@/components/TierBadge";
 import { VoiceMic } from "@/components/VoiceMic";
 import { Vote, Zap, ThumbsUp, ScrollText, Users } from "lucide-react";
 
-const Governance = () => {
+export default function Governance() {
   return (
     <div className="pt-14 sm:pt-16 pb-20 lg:pb-8 px-3 sm:px-4 lg:px-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
@@ -32,7 +34,7 @@ const Governance = () => {
       <section>
         <h2 className="font-display text-xs sm:text-sm uppercase tracking-wider text-foreground mb-3">Proposal Leaderboard</h2>
         <div className="space-y-2 sm:space-y-3">
-          {MOCK_PROPOSALS.sort((a, b) => b.endorsements - a.endorsements).map((p, i) => (
+          {[...MOCK_PROPOSALS].sort((a, b) => b.endorsements - a.endorsements).map((p, i) => (
             <motion.div key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }} className="glass rounded-xl p-3 sm:p-4">
               <div className="flex items-start justify-between gap-2 sm:gap-4">
                 <div className="flex items-start gap-2 sm:gap-3 min-w-0">
@@ -73,6 +75,4 @@ const Governance = () => {
       </section>
     </div>
   );
-};
-
-export default Governance;
+}
