@@ -15,6 +15,23 @@ dist-ssr
 out
 next-env.d.ts
 
+# Environment variables and secrets
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.json
+secrets.yaml
+secrets.yml
+config/secrets.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
