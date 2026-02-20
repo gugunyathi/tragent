@@ -73,7 +73,7 @@ export default function Dashboard() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           {trendingTokens.map((token, i) => (
-            <TokenCard key={token.id} token={token} index={i} onClick={() => router.push(`/token/${token.id}`)} />
+            <TokenCard key={token.id} token={token} index={i} enableKeyboard onClick={() => router.push(`/token/${token.id}`)} />
           ))}
         </div>
       </section>

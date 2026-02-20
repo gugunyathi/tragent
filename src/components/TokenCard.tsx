@@ -4,15 +4,17 @@ import { motion, useMotionValue, useTransform, useAnimation, PanInfo } from "fra
 import { SurvivalMeter } from "./SurvivalMeter";
 import { ArrowUpRight, ArrowDownRight, Droplets, Users, ShoppingCart, TrendingDown, Eye, Bookmark } from "lucide-react";
 import type { AgentToken } from "@/data/mockData";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/utils";
+import { QuickTradeDialog } from "./QuickTradeDialog";
 
 interface TokenCardProps {
   token: AgentToken;
   index: number;
   onClick?: () => void;
+  enableKeyboard?: boolean;
 }
 
 const SWIPE_THRESHOLD = 80;
@@ -24,11 +26,15 @@ const swipeOverlays = {
   down: { icon: Bookmark, label: "WATCHLIST", color: "from-tier-gold/30 to-transparent", textColor: "text-tier-gold" },
 };
 
-export function TokenCard({ token, index, onClick }: TokenCardProps) {
+export function TokenCard({ token, index, onClick, enableKeyboard = false }: TokenCardProps) {
   const isPositive = token.change24h >= 0;
   const router = useRouter();
   const [swipeDir, setSwipeDir] = useState<"right" | "left" | "up" | "down" | null>(null);
   const [swiping, setSwiping] = useState(false);
+  const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
+  const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -43,6 +49,34 @@ export function TokenCard({ token, index, onClick }: TokenCardProps) {
       return Math.min(max / SWIPE_THRESHOLD, 1);
     }
   );
+
+  // Keyboard controls
+  useEffect(() => {
+    if (!enableKeyboard || !isFocused) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (tradeDialogOpen) return;
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setTradeType("sell");
+        setTradeDialogOpen(true);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setTradeType("buy");
+        setTradeDialogOpen(true);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        router.push(`/token/${token.id}`);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        toast({ title: `⭐ Added to Watchlist`, description: `${token.name} added to your watchlist` });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [enableKeyboard, isFocused, tradeDialogOpen, token, router]);
 
   const handleDrag = useCallback((_: any, info: PanInfo) => {
     const { x: dx, y: dy } = info.offset;
@@ -64,9 +98,11 @@ export function TokenCard({ token, index, onClick }: TokenCardProps) {
 
     if (absX > SWIPE_THRESHOLD && absX > absY) {
       if (dx > 0) {
-        toast({ title: `🛒 Bought ${token.symbol}`, description: `Purchase order placed for ${token.name}` });
+        setTradeType("buy");
+        setTradeDialogOpen(true);
       } else {
-        toast({ title: `📉 Sold ${token.symbol}`, description: `Sell order placed for ${token.name}` });
+        setTradeType("sell");
+        setTradeDialogOpen(true);
       }
     } else if (absY > SWIPE_THRESHOLD && absY > absX) {
       if (dy < 0) {
@@ -85,24 +121,31 @@ export function TokenCard({ token, index, onClick }: TokenCardProps) {
   const overlay = swipeDir ? swipeOverlays[swipeDir] : null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.08 }}
-      className="relative touch-none"
-    >
+    <>
       <motion.div
-        style={{ x, y }}
-        drag
-        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-        dragElastic={0.7}
-        onDrag={handleDrag}
-        onDragEnd={handleDragEnd}
-        animate={controls}
-        whileHover={swiping ? undefined : { scale: 1.02, y: -4 }}
-        onClick={swiping ? undefined : onClick}
-        className="glass rounded-xl p-3 sm:p-4 cursor-pointer group relative overflow-hidden"
+        ref={cardRef}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.08 }}
+        className="relative touch-none"
+        tabIndex={enableKeyboard ? 0 : undefined}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
       >
+        <motion.div
+          style={{ x, y }}
+          drag
+          dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+          dragElastic={0.7}
+          onDrag={handleDrag}
+          onDragEnd={handleDragEnd}
+          animate={controls}
+          whileHover={swiping ? undefined : { scale: 1.02, y: -4 }}
+          onClick={swiping ? undefined : onClick}
+          className={`glass rounded-xl p-3 sm:p-4 cursor-pointer group relative overflow-hidden ${
+            isFocused && enableKeyboard ? "ring-2 ring-primary" : ""
+          }`}
+        >
         {/* Swipe overlay */}
         {overlay && (
           <motion.div
@@ -153,6 +196,25 @@ export function TokenCard({ token, index, onClick }: TokenCardProps) {
           <span className="ml-auto">{token.type}</span>
         </div>
       </motion.div>
+
+      {/* Keyboard hint */}
+      {isFocused && enableKeyboard && (
+        <motion.div
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute -bottom-8 left-0 right-0 text-center text-[10px] text-muted-foreground"
+        >
+          Press ← to sell or → to buy
+        </motion.div>
+      )}
     </motion.div>
+
+    <QuickTradeDialog
+      token={token}
+      type={tradeType}
+      isOpen={tradeDialogOpen}
+      onClose={() => setTradeDialogOpen(false)}
+    />
+  </>
   );
 }
