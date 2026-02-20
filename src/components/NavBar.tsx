@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Radio, Store, Vote, Shield, Wallet } from "lucide-react";
+import { Home, Radio, Store, Vote, Shield, Wallet, Bot } from "lucide-react";
 import { motion } from "framer-motion";
 import { TierBadge } from "./TierBadge";
 
@@ -10,6 +10,7 @@ const links = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/livestream", icon: Radio, label: "Live" },
   { href: "/marketplace", icon: Store, label: "Market" },
+  { href: "/agents", icon: Bot, label: "Agents" },
   { href: "/governance", icon: Vote, label: "Govern" },
   { href: "/compliance", icon: Shield, label: "Audit" },
 ];
