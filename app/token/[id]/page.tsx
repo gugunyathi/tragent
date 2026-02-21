@@ -5,14 +5,20 @@ import { useParams, useRouter } from "next/navigation";
 import { MOCK_TOKENS } from "@/data/mockData";
 import { SurvivalMeter } from "@/components/SurvivalMeter";
 import { VoiceMic } from "@/components/VoiceMic";
+import { QuickTradeDialog } from "@/components/QuickTradeDialog";
+import { useAppStore } from "@/hooks/use-app-store";
 import { formatNumber } from "@/lib/utils";
-import { ArrowLeft, Droplets, Users, BarChart3, Shield, Clock, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ArrowLeft, Droplets, Users, BarChart3, Shield, Clock, ArrowUpRight, ArrowDownRight, Star, TrendingUp, TrendingDown } from "lucide-react";
+import { useState } from "react";
 
 export default function TokenDetail() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
   const token = MOCK_TOKENS.find((t) => t.id === id);
+  const { state, toggleWatch } = useAppStore();
+  const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
+  const [tradeOpen, setTradeOpen] = useState(false);
 
   if (!token) {
     return (
@@ -24,6 +30,14 @@ export default function TokenDetail() {
   }
 
   const isPositive = token.change24h >= 0;
+  const isWatched = state.watchlist.includes(token.id);
+  const position = state.portfolio[token.id];
+  const pnl = position ? (token.price - position.avgPrice) * position.tokens : null;
+
+  const openTrade = (type: "buy" | "sell") => {
+    setTradeType(type);
+    setTradeOpen(true);
+  };
 
   const auditEntries = [
     { action: "Token Deployed", time: "2026-02-10 09:14", hash: "0xa1b2...c3d4" },
@@ -34,9 +48,21 @@ export default function TokenDetail() {
 
   return (
     <div className="pt-14 sm:pt-16 pb-20 lg:pb-8 px-3 sm:px-4 lg:px-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
-      <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => router.back()} className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Back
-      </motion.button>
+      <QuickTradeDialog token={token} type={tradeType} isOpen={tradeOpen} onClose={() => setTradeOpen(false)} />
+
+      <div className="flex items-center justify-between">
+        <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => router.back()} className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Back
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => toggleWatch(token.id)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${isWatched ? "bg-tier-gold/10 text-tier-gold border border-tier-gold/30" : "glass text-muted-foreground hover:text-foreground"}`}
+        >
+          <Star className={`w-3.5 h-3.5 ${isWatched ? "fill-tier-gold" : ""}`} />
+          {isWatched ? "Watching" : "Watch"}
+        </motion.button>
+      </div>
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-xl sm:rounded-2xl p-4 sm:p-6 relative overflow-hidden">
@@ -64,12 +90,38 @@ export default function TokenDetail() {
               token.status === "stable" ? "bg-primary/10 text-primary" :
               token.status === "at-risk" ? "bg-destructive/10 text-destructive" :
               "bg-muted text-muted-foreground"
-            }`}>
-              {token.status}
-            </span>
+            }`}>{token.status}</span>
           </div>
         </div>
       </motion.div>
+
+      {/* My Position */}
+      {position && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-xl p-4 border border-primary/20">
+          <h3 className="font-display text-xs uppercase tracking-wider text-muted-foreground mb-3">My Position</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-lg font-bold text-foreground">{position.tokens.toFixed(4)}</p>
+              <p className="text-[10px] text-muted-foreground">Tokens held</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground">${(position.tokens * token.price).toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground">Current value</p>
+            </div>
+            <div>
+              {pnl !== null && (
+                <>
+                  <p className={`text-lg font-bold ${pnl >= 0 ? "text-neon-green" : "text-destructive"} flex items-center gap-1`}>
+                    {pnl >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                    {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Unrealized P&L</p>
+                </>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
@@ -94,13 +146,27 @@ export default function TokenDetail() {
 
       {/* Actions */}
       <div className="flex items-center gap-2 sm:gap-4">
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 py-2.5 sm:py-3 rounded-xl bg-neon-green/10 text-neon-green font-display text-[10px] sm:text-sm uppercase tracking-wider font-semibold border border-neon-green/20 hover:bg-neon-green/20 transition-colors">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => openTrade("buy")}
+          className="flex-1 py-2.5 sm:py-3 rounded-xl bg-neon-green/10 text-neon-green font-display text-[10px] sm:text-sm uppercase tracking-wider font-semibold border border-neon-green/20 hover:bg-neon-green/20 transition-colors"
+        >
           Buy {token.symbol}
         </motion.button>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 py-2.5 sm:py-3 rounded-xl bg-destructive/10 text-destructive font-display text-[10px] sm:text-sm uppercase tracking-wider font-semibold border border-destructive/20 hover:bg-destructive/20 transition-colors">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => openTrade("sell")}
+          disabled={!position}
+          className="flex-1 py-2.5 sm:py-3 rounded-xl bg-destructive/10 text-destructive font-display text-[10px] sm:text-sm uppercase tracking-wider font-semibold border border-destructive/20 hover:bg-destructive/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
           Sell {token.symbol}
         </motion.button>
-        <VoiceMic />
+        <VoiceMic onTranscript={(text) => {
+          if (text.includes("buy")) openTrade("buy");
+          else if (text.includes("sell")) openTrade("sell");
+        }} />
       </div>
 
       {/* Audit Log */}
@@ -116,7 +182,7 @@ export default function TokenDetail() {
                 <span className="text-foreground font-medium">{entry.action}</span>
                 <span className="text-muted-foreground text-[10px] sm:text-xs ml-2 hidden sm:inline">{entry.time}</span>
               </div>
-              <span className="text-[10px] sm:text-xs text-primary font-mono flex-shrink-0">{entry.hash}</span>
+              <a href={`https://basescan.org/tx/${entry.hash}`} target="_blank" rel="noopener noreferrer" className="text-[10px] sm:text-xs text-primary font-mono flex-shrink-0 hover:underline">{entry.hash}</a>
             </motion.div>
           ))}
         </div>

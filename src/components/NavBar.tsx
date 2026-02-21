@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Radio, Store, Vote, Shield, Wallet, Bot } from "lucide-react";
+import { useAppStore } from "@/hooks/use-app-store";
 import { motion } from "framer-motion";
 import { TierBadge } from "./TierBadge";
 
@@ -17,6 +18,7 @@ const links = [
 
 export function NavBar() {
   const pathname = usePathname();
+  const { state } = useAppStore();
 
   return (
     <>
@@ -57,10 +59,16 @@ export function NavBar() {
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="hidden sm:inline-flex"><TierBadge tier="platinum" showLabel /></span>
             <span className="sm:hidden"><TierBadge tier="platinum" /></span>
-            <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs glass rounded-full px-2 sm:px-3 py-1 sm:py-1.5">
-              <Wallet className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
-              <span className="text-foreground font-semibold">8,200</span>
-              <span className="text-muted-foreground hidden sm:inline">SC</span>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs glass rounded-full px-2 sm:px-3 py-1 sm:py-1.5">
+                <Wallet className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
+                <span className="text-foreground font-semibold">${state.walletBalance.toFixed(0)}</span>
+                <span className="text-muted-foreground hidden sm:inline">USDC</span>
+              </div>
+              <div className="hidden sm:flex items-center gap-1 text-[10px] text-xs glass rounded-full px-2 sm:px-3 py-1 sm:py-1.5">
+                <span className="text-tier-gold font-semibold">{state.scCredits.toLocaleString()}</span>
+                <span className="text-muted-foreground">SC</span>
+              </div>
             </div>
           </div>
         </div>

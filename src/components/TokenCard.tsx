@@ -2,13 +2,14 @@
 
 import { motion, useMotionValue, useTransform, useAnimation, PanInfo } from "framer-motion";
 import { SurvivalMeter } from "./SurvivalMeter";
-import { ArrowUpRight, ArrowDownRight, Droplets, Users, ShoppingCart, TrendingDown, Eye, Bookmark } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Droplets, Users, ShoppingCart, TrendingDown, Eye, Bookmark, Star, Wallet } from "lucide-react";
 import type { AgentToken } from "@/data/mockData";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/utils";
 import { QuickTradeDialog } from "./QuickTradeDialog";
+import { useAppStore } from "@/hooks/use-app-store";
 
 interface TokenCardProps {
   token: AgentToken;
@@ -29,6 +30,9 @@ const swipeOverlays = {
 export function TokenCard({ token, index, onClick, enableKeyboard = false }: TokenCardProps) {
   const isPositive = token.change24h >= 0;
   const router = useRouter();
+  const { state, toggleWatch } = useAppStore();
+  const isWatched = state.watchlist.includes(token.id);
+  const hasPosition = !!state.portfolio[token.id];
   const [swipeDir, setSwipeDir] = useState<"right" | "left" | "up" | "down" | null>(null);
   const [swiping, setSwiping] = useState(false);
   const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
@@ -70,13 +74,17 @@ export function TokenCard({ token, index, onClick, enableKeyboard = false }: Tok
         router.push(`/token/${token.id}`);
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        toast({ title: `⭐ Added to Watchlist`, description: `${token.name} added to your watchlist` });
+        toggleWatch(token.id);
+        toast({
+          title: isWatched ? `Removed from watchlist` : `⭐ Added to watchlist`,
+          description: token.name,
+        });
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [enableKeyboard, isFocused, tradeDialogOpen, token, router]);
+  }, [enableKeyboard, isFocused, tradeDialogOpen, token, router, toggleWatch, isWatched]);
 
   const handleDrag = useCallback((_: any, info: PanInfo) => {
     const { x: dx, y: dy } = info.offset;
@@ -109,14 +117,18 @@ export function TokenCard({ token, index, onClick, enableKeyboard = false }: Tok
         router.push(`/token/${token.id}`);
         return;
       } else {
-        toast({ title: `⭐ Added to Watchlist`, description: `${token.name} added to your watchlist` });
+        toggleWatch(token.id);
+        toast({
+          title: isWatched ? `Removed from watchlist` : `⭐ Added to watchlist`,
+          description: token.name,
+        });
       }
     }
 
     setSwipeDir(null);
     setSwiping(false);
     controls.start({ x: 0, y: 0, transition: { type: "spring", stiffness: 500, damping: 30 } });
-  }, [token, router, controls]);
+  }, [token, router, controls, toggleWatch, isWatched]);
 
   const overlay = swipeDir ? swipeOverlays[swipeDir] : null;
 
@@ -170,14 +182,18 @@ export function TokenCard({ token, index, onClick, enableKeyboard = false }: Tok
               <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{token.name}</p>
             </div>
           </div>
-          <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-            token.status === "thriving" ? "bg-neon-green/10 text-neon-green" :
-            token.status === "stable" ? "bg-primary/10 text-primary" :
-            token.status === "at-risk" ? "bg-destructive/10 text-destructive" :
-            "bg-muted text-muted-foreground"
-          }`}>
-            {token.status}
-          </span>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {isWatched && <Star className="w-3 h-3 text-tier-gold fill-tier-gold" />}
+            {hasPosition && <Wallet className="w-3 h-3 text-primary" />}
+            <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium ml-1 ${
+              token.status === "thriving" ? "bg-neon-green/10 text-neon-green" :
+              token.status === "stable" ? "bg-primary/10 text-primary" :
+              token.status === "at-risk" ? "bg-destructive/10 text-destructive" :
+              "bg-muted text-muted-foreground"
+            }`}>
+              {token.status}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-end justify-between mb-2 sm:mb-3">
