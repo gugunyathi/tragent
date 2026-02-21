@@ -24,8 +24,13 @@ export default function LiveFeed() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewers, setViewers] = useState<number[]>(() =>
-    ACTIVE_TOKENS.map(() => Math.floor(900 + Math.random() * 800))
+    ACTIVE_TOKENS.map(() => 0)
   );
+
+  // Randomise viewer counts client-side only (avoids SSR hydration mismatch)
+  useEffect(() => {
+    setViewers(ACTIVE_TOKENS.map(() => Math.floor(900 + Math.random() * 800)));
+  }, []);
   const [tradeToken, setTradeToken] = useState<AgentToken>(ACTIVE_TOKENS[0]);
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
   const [tradeOpen, setTradeOpen] = useState(false);
@@ -95,7 +100,7 @@ export default function LiveFeed() {
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
             className="fixed inset-y-0 right-0 w-80 max-w-[90vw] z-[60] flex flex-col lg:hidden"
           >
-            <div className="flex flex-col h-full bg-background/95 backdrop-blur-xl border-l border-border pt-12 sm:pt-14 pb-16">
+            <div className="flex flex-col h-full bg-background/20 backdrop-blur-md border-l border-border/50 pt-12 sm:pt-14 pb-16">
               <div className="flex items-center justify-between px-4 py-2 border-b border-border flex-shrink-0">
                 <span className="text-sm font-semibold text-foreground">
                   {ACTIVE_TOKENS[currentIndex]?.agentName} · Live Chat
