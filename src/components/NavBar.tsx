@@ -8,12 +8,12 @@ import { motion } from "framer-motion";
 import { TierBadge } from "./TierBadge";
 
 const links = [
-  { href: "/", icon: Home, label: "Home" },
-  { href: "/livestream", icon: Radio, label: "Live" },
+  { href: "/", icon: Radio, label: "Live" },
   { href: "/marketplace", icon: Store, label: "Market" },
   { href: "/agents", icon: Bot, label: "Agents" },
   { href: "/governance", icon: Vote, label: "Govern" },
   { href: "/compliance", icon: Shield, label: "Audit" },
+  { href: "/dashboard", icon: Home, label: "Dashboard" },
 ];
 
 export function NavBar() {
@@ -66,7 +66,7 @@ export function NavBar() {
                 <span className="text-muted-foreground hidden sm:inline">USDC</span>
               </div>
               <div className="hidden sm:flex items-center gap-1 text-[10px] text-xs glass rounded-full px-2 sm:px-3 py-1 sm:py-1.5">
-                <span className="text-tier-gold font-semibold">{state.scCredits.toLocaleString()}</span>
+                <span className="text-tier-gold font-semibold">{state.scCredits.toLocaleString("en-US")}</span>
                 <span className="text-muted-foreground">SC</span>
               </div>
             </div>

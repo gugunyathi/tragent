@@ -1,184 +1,429 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { TokenCard } from "@/components/TokenCard";
-import { TierBadge } from "@/components/TierBadge";
+import { motion, AnimatePresence } from "framer-motion";
+import { QuickTradeDialog } from "@/components/QuickTradeDialog";
+import { LiveChat } from "@/components/LiveChat";
 import { VoiceMic } from "@/components/VoiceMic";
-import { SwipeHint } from "@/components/SwipeHint";
-import { MOCK_TOKENS, MOCK_PROPOSALS } from "@/data/mockData";
-import { Radio, TrendingUp, Vote, Zap, ArrowUpRight, Wallet, Star } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { MOCK_TOKENS } from "@/data/mockData";
+import type { AgentToken } from "@/data/mockData";
 import { useAppStore } from "@/hooks/use-app-store";
+import {
+  Radio, Eye, ArrowUpRight, ArrowDownRight,
+  TrendingUp, Wallet, ChevronUp, ChevronDown,
+  MessageCircle, X,
+} from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
-export default function Dashboard() {
+const ACTIVE_TOKENS = MOCK_TOKENS.filter((t) => t.status !== "retired");
+const QUICK_BUY = [5, 10, 25];
+
+export default function LiveFeed() {
   const router = useRouter();
-  const { state } = useAppStore();
-  const trendingTokens = MOCK_TOKENS.filter((t) => t.status !== "retired").slice(0, 4);
-  const topProposals = MOCK_PROPOSALS.slice(0, 3);
+  const { state, buy } = useAppStore();
 
-  // Compute real stats from data
-  const totalVolume = MOCK_TOKENS.reduce((s, t) => s + t.volume24h, 0);
-  const activeAgents = MOCK_TOKENS.filter((t) => t.status !== "retired").length;
-  const totalHolders = MOCK_TOKENS.reduce((s, t) => s + t.holders, 0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [viewers, setViewers] = useState<number[]>(() =>
+    ACTIVE_TOKENS.map(() => Math.floor(900 + Math.random() * 800))
+  );
+  const [tradeToken, setTradeToken] = useState<AgentToken>(ACTIVE_TOKENS[0]);
+  const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
+  const [tradeOpen, setTradeOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
-  // Portfolio summary
-  const portfolioTokens = Object.values(state.portfolio);
-  const totalPortfolioValue = portfolioTokens.reduce((sum, pos) => {
-    const token = MOCK_TOKENS.find((t) => t.id === pos.tokenId);
-    return sum + (token ? pos.tokens * token.price : 0);
-  }, 0);
-  const watchlistTokens = MOCK_TOKENS.filter((t) => state.watchlist.includes(t.id));
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Fluctuate viewer count for visible slide
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setViewers((v) =>
+        v.map((count, i) =>
+          i === currentIndex
+            ? Math.max(800, count + Math.floor(Math.random() * 21) - 10)
+            : count
+        )
+      );
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [currentIndex]);
+
+  // Track which slide is in view via IntersectionObserver
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const idx = slideRefs.current.indexOf(entry.target as HTMLDivElement);
+            if (idx !== -1) setCurrentIndex(idx);
+          }
+        });
+      },
+      { threshold: 0.55 }
+    );
+    const els = slideRefs.current;
+    els.forEach((el) => el && observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollTo = useCallback((idx: number) => {
+    slideRefs.current[Math.max(0, Math.min(idx, ACTIVE_TOKENS.length - 1))]
+      ?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const openTrade = (tok: AgentToken, type: "buy" | "sell") => {
+    setTradeToken(tok);
+    setTradeType(type);
+    setTradeOpen(true);
+  };
 
   return (
-    <div className="pt-14 sm:pt-16 pb-20 lg:pb-8 px-3 sm:px-4 lg:px-6 max-w-7xl mx-auto space-y-6 sm:space-y-8">
-      {/* Hero */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 relative overflow-hidden"
+    <>
+      <QuickTradeDialog
+        token={tradeToken}
+        type={tradeType}
+        isOpen={tradeOpen}
+        onClose={() => setTradeOpen(false)}
+      />
+
+      {/* Mobile chat slide-over */}
+      <AnimatePresence>
+        {chatOpen && (
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            className="fixed inset-y-0 right-0 w-80 max-w-[90vw] z-[60] flex flex-col lg:hidden"
+          >
+            <div className="flex flex-col h-full bg-background/95 backdrop-blur-xl border-l border-border pt-12 sm:pt-14 pb-16">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border flex-shrink-0">
+                <span className="text-sm font-semibold text-foreground">
+                  {ACTIVE_TOKENS[currentIndex]?.agentName} · Live Chat
+                </span>
+                <button onClick={() => setChatOpen(false)}>
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0">
+                <LiveChat room={`live-${ACTIVE_TOKENS[currentIndex]?.id}`} />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* TikTok-style snap-scroll feed */}
+      <div
+        className="h-screen overflow-y-scroll snap-y snap-mandatory [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none" }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-neon-pink/5 pointer-events-none" />
-        <div className="relative z-10 flex flex-col gap-4 sm:gap-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
-            <div className="space-y-2 sm:space-y-3">
-              <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-                Conway <span className="text-primary text-glow-cyan">Live</span>
-              </h1>
-              <p className="text-muted-foreground max-w-md text-xs sm:text-sm">
-                Autonomous agents launch tokens, provide liquidity, and survive — all in a gamified live marketplace.
-              </p>
-              <div className="flex items-center gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => router.push("/livestream")}
-                  className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display text-[10px] sm:text-xs uppercase tracking-wider font-semibold glow-cyan"
-                >
-                  <Radio className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Watch Live
-                </motion.button>
-                <VoiceMic onTranscript={(text) => {
-                  if (text.includes("marketplace") || text.includes("market")) router.push("/marketplace");
-                  else if (text.includes("agent")) router.push("/agents");
-                  else if (text.includes("govern")) router.push("/governance");
-                  else if (text.includes("live")) router.push("/livestream");
-                }} />
-              </div>
-            </div>
-            <div className="flex items-center gap-4 sm:gap-6">
-              {[
-                { value: `$${(totalVolume / 1000).toFixed(0)}K`, label: "24h Volume", color: "text-neon-green" },
-                { value: activeAgents.toString(), label: "Active Agents", color: "text-primary" },
-                { value: `${(totalHolders / 1000).toFixed(1)}K`, label: "Holders", color: "text-tier-gold" },
-              ].map(({ value, label, color }) => (
-                <div key={label} className="text-center">
-                  <p className={`font-display text-lg sm:text-2xl font-bold ${color}`}>{value}</p>
-                  <p className="text-[8px] sm:text-[10px] text-muted-foreground font-display uppercase tracking-wider">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.section>
+        {ACTIVE_TOKENS.map((tok, i) => {
+          const pos = state.portfolio[tok.id];
+          const positive = tok.change24h >= 0;
+          const pnl = pos ? (tok.price - pos.avgPrice) * pos.tokens : 0;
 
-      {/* Portfolio Summary — only shown when user has positions */}
-      {(portfolioTokens.length > 0 || watchlistTokens.length > 0) && (
-        <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {portfolioTokens.length > 0 && (
-              <div className="glass rounded-xl p-4 border border-primary/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Wallet className="w-4 h-4 text-primary" />
-                  <span className="font-display text-xs uppercase tracking-wider text-foreground">Portfolio</span>
-                  <span className="ml-auto text-xs text-muted-foreground">{portfolioTokens.length} positions</span>
-                </div>
-                <p className="text-xl font-bold text-foreground">${totalPortfolioValue.toFixed(2)}</p>
-                <div className="flex gap-2 mt-2 flex-wrap">
-                  {portfolioTokens.map((pos) => (
-                    <button
-                      key={pos.tokenId}
-                      onClick={() => router.push(`/token/${pos.tokenId}`)}
-                      className="text-xs glass rounded-lg px-2 py-1 hover:bg-muted text-foreground"
-                    >
-                      {pos.agentAvatar} {pos.symbol}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {watchlistTokens.length > 0 && (
-              <div className="glass rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Star className="w-4 h-4 text-tier-gold" />
-                  <span className="font-display text-xs uppercase tracking-wider text-foreground">Watchlist</span>
-                </div>
-                <div className="space-y-1">
-                  {watchlistTokens.map((t) => (
-                    <button key={t.id} onClick={() => router.push(`/token/${t.id}`)} className="w-full flex items-center justify-between text-xs hover:bg-muted/30 rounded px-1 py-0.5">
-                      <span className="flex items-center gap-1">{t.agentAvatar} {t.symbol}</span>
-                      <span className={t.change24h >= 0 ? "text-neon-green" : "text-destructive"}>
-                        {t.change24h >= 0 ? "+" : ""}{t.change24h}%
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </motion.section>
-      )}
-
-      <SwipeHint />
-
-      {/* Trending */}
-      <section>
-        <div className="flex items-center gap-2 mb-3 sm:mb-4">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          <h2 className="font-display text-xs sm:text-sm uppercase tracking-wider text-foreground">Trending Tokens</h2>
-          <motion.button whileHover={{ x: 2 }} onClick={() => router.push("/marketplace")} className="ml-auto text-[10px] sm:text-xs text-primary flex items-center gap-1">
-            View all <ArrowUpRight className="w-3 h-3" />
-          </motion.button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-          {trendingTokens.map((token, i) => (
-            <TokenCard key={token.id} token={token} index={i} enableKeyboard onClick={() => router.push(`/token/${token.id}`)} />
-          ))}
-        </div>
-      </section>
-
-      {/* Proposals */}
-      <section>
-        <div className="flex items-center gap-2 mb-3 sm:mb-4">
-          <Vote className="w-4 h-4 text-tier-gold" />
-          <h2 className="font-display text-xs sm:text-sm uppercase tracking-wider text-foreground">Top Proposals</h2>
-          <motion.button whileHover={{ x: 2 }} onClick={() => router.push("/governance")} className="ml-auto text-[10px] sm:text-xs text-primary flex items-center gap-1">
-            View all <ArrowUpRight className="w-3 h-3" />
-          </motion.button>
-        </div>
-        <div className="space-y-2">
-          {topProposals.map((p, i) => (
-            <motion.button
-              key={p.id}
-              onClick={() => router.push("/governance")}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="w-full glass rounded-xl p-3 sm:p-4 flex items-center justify-between gap-3 hover:bg-muted/20 transition-colors text-left"
+          return (
+            <div
+              key={tok.id}
+              ref={(el) => { slideRefs.current[i] = el; }}
+              className="h-screen snap-start relative flex overflow-hidden"
             >
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <TierBadge tier={p.tier} />
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-foreground truncate">{p.title}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{p.author}</p>
+              {/* Slide background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5 pointer-events-none" />
+
+              {/* Content */}
+              <div className="relative z-10 flex w-full h-full pt-12 sm:pt-14 pb-16 lg:pb-0">
+
+                {/* ── Stream column ── */}
+                <div className="flex-1 flex flex-col min-w-0">
+                  {/* Top badges */}
+                  <div className="flex items-center gap-2 px-4 pt-3 flex-shrink-0">
+                    <motion.span
+                      animate={i === currentIndex ? { opacity: [1, 0.5, 1] } : {}}
+                      transition={{ duration: 1.4, repeat: Infinity }}
+                      className="flex items-center gap-1.5 bg-destructive/90 text-destructive-foreground px-2.5 py-0.5 rounded-full text-[10px] font-bold"
+                    >
+                      <Radio className="w-2.5 h-2.5" /> LIVE
+                    </motion.span>
+                    <span className="flex items-center gap-1 glass rounded-full px-2.5 py-0.5 text-[10px]">
+                      <Eye className="w-2.5 h-2.5 text-primary" />
+                      <span className="tabular-nums text-foreground">
+                        {viewers[i]?.toLocaleString("en-US")}
+                      </span>
+                    </span>
+                    <span className="ml-auto text-[10px] text-muted-foreground font-display uppercase tracking-wider">
+                      {i + 1} / {ACTIVE_TOKENS.length}
+                    </span>
+                  </div>
+
+                  {/* Agent card — centered */}
+                  <div className="flex-1 flex items-center justify-center px-6">
+                    <div className="text-center space-y-4 w-full max-w-sm">
+                      <motion.div
+                        animate={i === currentIndex ? { scale: [1, 1.07, 1] } : { scale: 1 }}
+                        transition={{ duration: 2.5, repeat: Infinity }}
+                        className="text-[80px] sm:text-[96px] leading-none select-none"
+                      >
+                        {tok.agentAvatar}
+                      </motion.div>
+
+                      <div>
+                        <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+                          {tok.agentName}
+                        </h2>
+                        <p className="text-sm text-muted-foreground mt-0.5">{tok.type}</p>
+                      </div>
+
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="font-display text-3xl sm:text-4xl font-bold text-foreground">
+                          ${tok.price.toFixed(2)}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-0.5 text-sm font-bold px-2.5 py-1 rounded-full ${
+                            positive
+                              ? "bg-neon-green/15 text-neon-green"
+                              : "bg-destructive/15 text-destructive"
+                          }`}
+                        >
+                          {positive
+                            ? <ArrowUpRight className="w-4 h-4" />
+                            : <ArrowDownRight className="w-4 h-4" />}
+                          {Math.abs(tok.change24h)}%
+                        </span>
+                      </div>
+
+                      {/* Position badge */}
+                      {pos && (
+                        <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1.5 text-xs">
+                          <TrendingUp className="w-3 h-3 text-primary" />
+                          <span className="text-muted-foreground">
+                            {pos.tokens.toFixed(2)} {tok.symbol}
+                          </span>
+                          <span className={pnl >= 0 ? "text-neon-green font-semibold" : "text-destructive font-semibold"}>
+                            {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-muted-foreground">
+                        <span className="text-primary font-display tracking-wider">MiCA</span>
+                        {" "}· {tok.symbol} · ERC-20 · {(tok.supply / 1000).toFixed(0)}K supply · Conway Verified
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Bottom trade controls */}
+                  <div className="px-4 pb-3 space-y-2.5 flex-shrink-0">
+                    {/* Quick-buy pills */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-display uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                        Quick Buy
+                      </span>
+                      {QUICK_BUY.map((amt) => (
+                        <motion.button
+                          key={amt}
+                          whileTap={{ scale: 0.91 }}
+                          onClick={() =>
+                            buy(tok.id, tok.symbol, tok.name, tok.agentAvatar, amt, tok.price)
+                          }
+                          className="flex-1 py-1.5 rounded-full bg-neon-green/15 border border-neon-green/40 text-neon-green text-xs font-bold hover:bg-neon-green/25 transition-colors"
+                        >
+                          +${amt}
+                        </motion.button>
+                      ))}
+                    </div>
+
+                    {/* Buy / Sell / Voice */}
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => openTrade(tok, "buy")}
+                        className="flex-1 py-3.5 rounded-2xl bg-primary text-primary-foreground text-sm font-display uppercase tracking-wider glow-cyan hover:bg-primary/90 transition-colors"
+                      >
+                        Buy {tok.symbol}
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => openTrade(tok, "sell")}
+                        disabled={!pos}
+                        className="flex-1 py-3.5 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive text-sm font-display uppercase tracking-wider hover:bg-destructive/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        Sell
+                      </motion.button>
+                      <VoiceMic
+                        onTranscript={(text) => {
+                          if (text.includes("buy")) openTrade(tok, "buy");
+                          else if (text.includes("sell")) openTrade(tok, "sell");
+                          else if (text.includes("next")) scrollTo(i + 1);
+                          else if (text.includes("prev") || text.includes("previous")) scrollTo(i - 1);
+                          else if (text.includes("detail") || text.includes("token")) router.push(`/token/${tok.id}`);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Right action strip (mobile/tablet) ── */}
+                <div className="w-14 flex flex-col items-center justify-end pb-4 gap-3.5 pr-1 flex-shrink-0 lg:hidden">
+                  {/* Chat */}
+                  <button
+                    onClick={() => { setCurrentIndex(i); setChatOpen((o) => !o); }}
+                    className="flex flex-col items-center gap-0.5"
+                  >
+                    <div className="w-11 h-11 rounded-full glass flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-foreground" />
+                    </div>
+                    <span className="text-[8px] text-muted-foreground">Chat</span>
+                  </button>
+
+                  {/* Token detail avatar */}
+                  <button
+                    onClick={() => router.push(`/token/${tok.id}`)}
+                    className="flex flex-col items-center gap-0.5"
+                  >
+                    <div className="w-11 h-11 rounded-full glass flex items-center justify-center text-xl">
+                      {tok.agentAvatar}
+                    </div>
+                    <span className="text-[8px] text-muted-foreground">Detail</span>
+                  </button>
+
+                  {/* Scroll up */}
+                  {i > 0 && (
+                    <button
+                      onClick={() => scrollTo(i - 1)}
+                      className="w-11 h-11 rounded-full glass flex items-center justify-center"
+                    >
+                      <ChevronUp className="w-5 h-5 text-foreground" />
+                    </button>
+                  )}
+
+                  {/* Scroll down */}
+                  {i < ACTIVE_TOKENS.length - 1 && (
+                    <button
+                      onClick={() => scrollTo(i + 1)}
+                      className="w-11 h-11 rounded-full glass flex items-center justify-center"
+                    >
+                      <ChevronDown className="w-5 h-5 text-foreground" />
+                    </button>
+                  )}
+
+                  {/* Dot indicators */}
+                  <div className="flex flex-col gap-1.5 items-center">
+                    {ACTIVE_TOKENS.map((_, j) => (
+                      <button
+                        key={j}
+                        onClick={() => scrollTo(j)}
+                        className={`rounded-full transition-all duration-200 ${
+                          j === currentIndex
+                            ? "h-4 w-1.5 bg-primary"
+                            : "h-1.5 w-1.5 bg-muted-foreground/35"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Desktop right panel ── */}
+                <div className="hidden lg:flex w-80 flex-col gap-3 py-3 pr-4 flex-shrink-0">
+                  {/* Trading card */}
+                  <div className="glass rounded-xl p-4 space-y-3 flex-shrink-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{tok.agentAvatar}</span>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{tok.symbol}</p>
+                          <p className="text-[10px] text-muted-foreground">{tok.name}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-foreground">${tok.price.toFixed(2)}</p>
+                        <span className={`text-[10px] ${positive ? "text-neon-green" : "text-destructive"}`}>
+                          {positive ? "+" : ""}{tok.change24h}% 24h
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-1.5 text-center">
+                      {[
+                        { label: "Vol 24h", value: `$${(tok.volume24h / 1000).toFixed(0)}K` },
+                        { label: "Supply", value: `${(tok.supply / 1000).toFixed(0)}K` },
+                        { label: "SC", value: String(tok.survivalCredits) },
+                      ].map(({ label, value }) => (
+                        <div key={label} className="bg-muted/30 rounded-lg py-1.5 px-1">
+                          <p className="text-[11px] font-semibold text-foreground">{value}</p>
+                          <p className="text-[9px] text-muted-foreground">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/20 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-1.5">
+                        <Wallet className="w-3.5 h-3.5 text-primary" />
+                        <span>Balance</span>
+                      </div>
+                      <span className="font-semibold text-foreground">
+                        ${state.walletBalance.toFixed(2)} USDC
+                      </span>
+                    </div>
+
+                    {pos && (
+                      <div className="flex items-center justify-between text-xs bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-1.5">
+                          <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-muted-foreground">{pos.tokens.toFixed(2)} {tok.symbol}</span>
+                        </div>
+                        <span className={`font-semibold ${pnl >= 0 ? "text-neon-green" : "text-destructive"}`}>
+                          {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {QUICK_BUY.map((amt) => (
+                        <button
+                          key={amt}
+                          onClick={() => buy(tok.id, tok.symbol, tok.name, tok.agentAvatar, amt, tok.price)}
+                          className="py-1.5 rounded-lg bg-neon-green/10 border border-neon-green/30 text-neon-green text-xs font-semibold hover:bg-neon-green/20 transition-colors"
+                        >
+                          ${amt}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => openTrade(tok, "buy")}
+                        className="py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-display uppercase tracking-wider glow-cyan hover:bg-primary/90 transition-colors"
+                      >
+                        Buy
+                      </button>
+                      <button
+                        onClick={() => openTrade(tok, "sell")}
+                        disabled={!pos}
+                        className="py-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-display uppercase tracking-wider hover:bg-destructive/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Sell
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => router.push(`/token/${tok.id}`)}
+                      className="w-full py-1.5 text-[10px] text-primary hover:underline font-display uppercase tracking-wider"
+                    >
+                      View full token detail →
+                    </button>
+                  </div>
+
+                  {/* Chat */}
+                  <div className="flex-1 min-h-0">
+                    <LiveChat room={`live-${tok.id}`} />
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <span className="text-xs text-primary font-semibold">{p.endorsements}</span>
-                <Zap className="w-3 h-3 text-tier-gold" />
-              </div>
-            </motion.button>
-          ))}
-        </div>
-      </section>
-    </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }

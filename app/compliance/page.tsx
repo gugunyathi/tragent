@@ -56,7 +56,7 @@ export default function Compliance() {
           { icon: CheckCircle, label: "MiCA Compliant", value: activeAgents.length, color: "text-neon-green" },
           { icon: AlertTriangle, label: "At Risk", value: MOCK_TOKENS.filter(t => t.status === "at-risk").length, color: "text-destructive" },
           { icon: Clock, label: "Retired", value: retiredAgents.length, color: "text-muted-foreground" },
-          { icon: FileSearch, label: "Audit Entries", value: auditCount.toLocaleString(), color: "text-primary" },
+          { icon: FileSearch, label: "Audit Entries", value: auditCount.toLocaleString("en-US"), color: "text-primary" },
         ].map(({ icon: Icon, label, value, color }, i) => (
           <motion.div key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="glass rounded-xl p-3 sm:p-4 text-center">
             <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mx-auto mb-1 ${color}`} />

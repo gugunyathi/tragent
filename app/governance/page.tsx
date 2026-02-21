@@ -98,7 +98,7 @@ export default function Governance() {
         {[
           { label: "Active Proposals", value: activeCount, icon: ScrollText, color: "text-primary" },
           { label: "Council Members", value: 24, icon: Users, color: "text-tier-platinum" },
-          { label: "Total Endorsements", value: totalVotes.toLocaleString(), icon: ThumbsUp, color: "text-tier-gold" },
+          { label: "Total Endorsements", value: totalVotes.toLocaleString("en-US"), icon: ThumbsUp, color: "text-tier-gold" },
         ].map(({ label, value, icon: Icon, color }, i) => (
           <motion.div key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="glass rounded-xl p-3 sm:p-4 text-center">
             <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mx-auto mb-1 ${color}`} />
